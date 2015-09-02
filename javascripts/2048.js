@@ -90,7 +90,7 @@ Board.prototype.move = function(direction) {
   var that = this; // make this, which is the board object .move is being called on, available to inner scopes
 
   // 1. reorient function => array of arrays in columns or rows
-  var reorientedBoard = this.reorient(direction);
+  var reorientedBoard = this.reorient(direction, this.oldBoard);
 
   var resolvedBoard = reorientedBoard.map(function(currentRow) {
     // 2. each row/column condense function (LOOP)
@@ -108,7 +108,7 @@ Board.prototype.move = function(direction) {
 
 // board.reorient("down")
 // reorients the board into arrays based on direction
-Board.prototype.reorient = function(direction) {
+Board.prototype.reorient = function(direction, board) {
   var method;
 
   if (direction == "left" || direction == "right")
@@ -116,25 +116,25 @@ Board.prototype.reorient = function(direction) {
   else // "up" || "down"
     method = "verticalReorient";
 
-  return this[method].call(this); // execute the function in the current context
+  return this[method].call(this, board); // execute the function in the current context
 };
 
 // board.horizontalReorient()
 // this function returns the board as is, since it's already oriented for left-right operations by default
-Board.prototype.horizontalReorient = function() {
-  return this.oldBoard;
+Board.prototype.horizontalReorient = function(board) {
+  return board;
 };
 
 // board.verticalReorient()
 // this function returns the board twisted 90 degrees, so we can traverse up/down along individual arrays
-Board.prototype.verticalReorient = function() {
+Board.prototype.verticalReorient = function(board) {
   var reorientedBoard = [];
 
   for (var oldCol = 0; oldCol < this.boardLength; oldCol++) {
     var newRow = [];
 
     for (var oldRow = 0; oldRow < this.boardLength; oldRow++) {
-      newRow.push(this.oldBoard[oldRow][oldCol]);
+      newRow.push(board[oldRow][oldCol]);
     };
 
     reorientedBoard.push(newRow);
@@ -263,7 +263,7 @@ Board.prototype.build = function(condensedArrays, direction) {
   };
 
   // twisting the board back to its original orientation
-  this.newBoard = this.reorient(direction);
+  this.newBoard = this.reorient(direction, this.newBoard);
 }
 
 Board.prototype.newTile = function(emptySpots) {
