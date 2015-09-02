@@ -20,21 +20,23 @@ var Tile = function(tilePosition) {
   this.oldCol = tilePosition[1];
   this.newRow = this.oldRow;
   this.newCol = this.oldCol;
-  this.number = 2; // NOTE this might be where we use the 2 v. 4 functionality
+  this.oldValue = 2; // NOTE this might be where we use the 2 v. 4 functionality
+  this.newValue = this.oldValue;
 }
 
-Tile.prototype.update = function() {
+// this method gets called by board.display()
+Tile.prototype.updateHTML = function() {
   // grab tile off page based on old position
   // change its attributes based on new position
   // update its old position to be its new position
   // we will prolly need to tag one of the collision tiles to know which one to keep
-  if (this.number != board.emptyTile) {
+  if (this.newValue != board.emptyTile) {
     var tile = $("[data-row='r" + this.oldRow + "'][data-col='c" + this.oldCol + "']"); // grabs old tile element
     // add the attributes necessary for the tile to display in the right spot on the board
     tile.attr("data-row", "r" + this.newRow);
     tile.attr("data-col", "c" + this.newCol);
-    tile.attr("data-val", this.number);
-    tile.text(this.number);
+    tile.attr("data-val", this.newValue);
+    tile.text(this.newValue);
 
     // remove the old tag, since this tile has been changed & shouldn't be deleted
     tile.removeClass("old"); // this tile isn't old anymore
@@ -167,20 +169,34 @@ Board.prototype.verticalReorient = function() {
   return reorientedBoard;
 };
 
-// board.condense([2, 0, 0, 0]) // => [2]
+// board.condense([2, 0, 0, 0], direction) // => [2]
 // this function condenses empty tiles out of a row
-Board.prototype.condense = function(colOrRow) {
-  var condensedColOrRow = [];
+Board.prototype.condense = function(colOrRow, direction) {
+  var row = colOrRow.slice();
 
-  for (i = 0; i < colOrRow.length; i++) {
-    if (colOrRow[i] == this.emptyTile) {
-      continue;
-    } else {
-      condensedColOrRow.push(colOrRow[i]);
+  var swap = function(firstIndex, secondIndex) {
+    var temp = row[firstIndex];
+    row[firstIndex] = row[secondIndex];
+    row[secondIndex] = temp;
+  }
+
+  if (direction == "left" || direction == "up") {
+    // go backwards
+    for (var i = row.length; i > 0; i--) {
+      if (row[i] != this.emptyTile && row[i - 1] == this.emptyTile) {
+        swap(i, i - 1);
+      }
+    }
+  } else { // right or down
+    // go forwards
+    for (var j = 0; j < (row.length - 1); j++) {
+      if (row[j] != this.emptyTile && row[j + 1] == this.emptyTile) {
+        swap(j, j + 1);
+      }
     }
   }
 
-  return condensedColOrRow;
+  return row;
 }
 
 // board.compareAndResolve([2, 2, 4], "left") // => board.moveForward([2, 2, 4])
