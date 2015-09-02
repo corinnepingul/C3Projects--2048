@@ -1,50 +1,74 @@
+var empty = "0";
 // declare a mystical global board
 // exist, board!
 
 var Board = function(boardArray) { // board constructor
   this.board = boardArray;
   this.boardLength = 4; // board is a square, so this is the same going both ways
-  this.emptyTile = 0;
+  this.emptyTile = empty;
 };
 
-var board = new Board([
-  [0, 0, 0, 2],
-  [0, 0, 0, 0],
-  [0, 2, 0, 0],
-  [0, 0, 0, 0]
-]);
-
 // we will create a new tile when it enters the board
-var Tile = function(tilePosition) {
+var Tile = function(tilePosition, tileValue) {
   this.oldRow = tilePosition[0];
   this.oldCol = tilePosition[1];
   this.newRow = this.oldRow;
   this.newCol = this.oldCol;
-  this.oldValue = 2; // NOTE this might be where we use the 2 v. 4 functionality
+  this.oldValue = tileValue || 2; // NOTE this might be where we use the 2 v. 4 functionality
   this.newValue = this.oldValue;
 }
 
+var board = new Board([
+  [new Tile ([0,0], empty), new Tile ([0,1], empty), new Tile ([0,2], empty), new Tile([0,3])],
+  [new Tile ([1,0], empty), new Tile ([1,1], empty), new Tile ([1,2], empty), new Tile ([1,3], empty)],
+  [new Tile ([2,0], empty), new Tile([2, 1]), new Tile ([2,2], empty), new Tile ([2,3], empty)],
+  [new Tile ([3,0], empty), new Tile ([3,1], empty), new Tile ([3,2], empty), new Tile ([3,3], empty)]
+]);
+
+Tile.prototype.findElement = function() {
+  var tile = $("[data-row='r" + this.oldRow + "'][data-col='c" + this.oldCol + "']"); // grabs old tile element
+
+  return tile;
+}
+
 // this method gets called by board.display()
-Tile.prototype.updateHTML = function() {
+Tile.prototype.slide = function() {
   // grab tile off page based on old position
   // change its attributes based on new position
   // update its old position to be its new position
   // we will prolly need to tag one of the collision tiles to know which one to keep
-  if (this.newValue != board.emptyTile) {
-    var tile = $("[data-row='r" + this.oldRow + "'][data-col='c" + this.oldCol + "']"); // grabs old tile element
-    // add the attributes necessary for the tile to display in the right spot on the board
+
+  var tile = this.findElement(); // grabs old tile element
+  // add the attributes necessary for the tile to display in the right spot on the board
+  if (tile.newValue != empty) {
     tile.attr("data-row", "r" + this.newRow);
     tile.attr("data-col", "c" + this.newCol);
     tile.attr("data-val", this.newValue);
     tile.text(this.newValue);
+  }
+}
 
-    // remove the old tag, since this tile has been changed & shouldn't be deleted
-    tile.removeClass("old"); // this tile isn't old anymore
-  };
+Tile.prototype.remove = function() {
+  var tile = this.findElement(); // grabs old tile element
+
+  tile.remove();
+}
+
+Tile.prototype.collide = function() {
+  this.slide().on("animationend", function() {
+    this.remove();
+  });
+}
+
+Tile.prototype.pop = function() {
+  var tile = this.findElement();
+  tile.addClass("pop").on("animationend", function() {
+    tile.removeClass("pop");
+  });
 }
 
 $(document).ready(function() {
-  board.display();
+  board.setup();
   console.log('ready, should be displayed!');
 
   $('body').keydown(function(event){
@@ -74,6 +98,24 @@ function moveTile(tile, direction) {
   }
 }
 
+Board.prototype.setup = function() {
+  var gameboard = $("#gameboard");
+
+  this.board.forEach(function(row) {
+    row.forEach(function(tile) {
+      if (tile.oldValue != empty) {
+        var div = $('<div></div>');
+        div.addClass('tile');
+        div.attr("data-row", "r" + tile.oldRow);
+        div.attr("data-col", "c" + tile.oldCol);
+        div.attr("data-val", tile.oldValue);
+        div.text(tile.oldValue);
+
+        gameboard.append(div);
+      }
+    });
+  });
+}
 
 Board.prototype.display = function() {
   var gameboard = $("#gameboard");
@@ -175,22 +217,28 @@ Board.prototype.condense = function(colOrRow, direction) {
   var row = colOrRow.slice();
 
   var swap = function(firstIndex, secondIndex) {
-    var temp = row[firstIndex];
+    // this method swaps both the values and updates the positions of the tiles
+    var tempFirst = row[firstIndex];
+    var tempSecond = row[secondIndex];
     row[firstIndex] = row[secondIndex];
-    row[secondIndex] = temp;
+    row[firstIndex].newRow = tempFirst.oldRow;
+    row[firstIndex].newCol = tempFirst.oldCol;
+    row[secondIndex] = tempFirst;
+    row[secondIndex].newRow = tempSecond.oldRow;
+    row[secondIndex].newCol = tempSecond.oldCol;
   }
 
   if (direction == "left" || direction == "up") {
     // go backwards
-    for (var i = row.length; i > 0; i--) {
-      if (row[i] != this.emptyTile && row[i - 1] == this.emptyTile) {
+    for (var i = (row.length - 1); i > 0; i--) {
+      if (row[i].oldValue != this.emptyTile && row[i - 1].oldValue == this.emptyTile) {
         swap(i, i - 1);
       }
     }
   } else { // right or down
     // go forwards
     for (var j = 0; j < (row.length - 1); j++) {
-      if (row[j] != this.emptyTile && row[j + 1] == this.emptyTile) {
+      if (row[j].oldValue != this.emptyTile && row[j + 1].oldValue == this.emptyTile) {
         swap(j, j + 1);
       }
     }
@@ -205,40 +253,65 @@ Board.prototype.condense = function(colOrRow, direction) {
 Board.prototype.compareAndResolve = function(condensedColOrRow, direction) {
   if (direction == "up" || direction == "left") {
   // up & left -> starts at the beginning of the array, moves forward
-    return this.moveForward(condensedColOrRow);
+    return this.moveForward(condensedColOrRow, direction);
   } else {
   // down & right -> starts at the end of the array, moves backward
-    return this.moveBackward(condensedColOrRow);
+    return this.moveBackward(condensedColOrRow, direction);
   }
 }
 
 // board.moveForward([2, 4, 4, 4]) // => [2, 8, 4]
 // this function traverses through a row, collapsing same-number pairs along the way
-Board.prototype.moveForward = function(condensedColOrRow) {
-  var resolvedColOrRow = [];
-
+Board.prototype.moveForward = function(condensedColOrRow, direction) {
   for (i = 0; i < condensedColOrRow.length; i++) {
-    var currentTileValue = condensedColOrRow[i];
-    var nextTileValue = condensedColOrRow[i + 1];
+    var currentTile = condensedColOrRow[i];
+    var nextTile = condensedColOrRow[i + 1];
 
-    if (currentTileValue == nextTileValue) {
-      var newTileValue = currentTileValue * 2;
+    if (currentTile.oldValue == this.emptyTile) {
+      break; // there are no more tiles with values left
+    }
 
-      resolvedColOrRow.push(newTileValue);
-      this.updateScore(newTileValue);
+    if (currentTile.oldValue == nextTile.oldValue) {
+      // slide the nextTile into the current Tile's location
+      // then delete the nexttile
+      // add a new tile (or update the first) -- this will pop into existence
+      if (i + 2 < this.boardLength) {
+        var firstTile = condensedColOrRow[i + 2];
 
-      i += 1; // this will increment by two (once here and once as defined by for loop)
+        if (i + 3 < this.boardLength) {
+          // we have two tiles to adjust
+          var secondTile = condensedColOrRow[i + 3];
+
+          secondTile.newRow = firstTile.newRow;
+          secondTile.newCol = firstTile.newCol;
+        }
+
+        firstTile.newRow = nextTile.newRow;
+        firstTile.newCol = nextTile.newCol;
+      }
+
+      nextTile.newRow = currentTile.newRow;
+      nextTile.newCol = currentTile.newCol;
+
+      nextTile.collide();
+
+      currentTile.newValue = currentTile.oldValue * 2;
+      currentTile.pop();
+
+      this.updateScore(newTile);
+
+
+      // this removes nextTile from the array
+      condensedColOrRow.splice(i + 1, 1);
     } else {
-      resolvedColOrRow.push(condensedColOrRow[i]);
+      currentTile.slide();
     }
   }
-
-  return resolvedColOrRow;
 }
 
 // board.moveBackward([2, 4, 4, 4]) // => [2, 4, 8]
 // this function traverses through a row, collapsing same-number pairs along the way
-Board.prototype.moveBackward = function(condensedColOrRow) {
+Board.prototype.moveBackward = function(condensedColOrRow, direction) {
   var resolvedColOrRow = [];
 
   for (i = condensedColOrRow.length - 1; i >= 0; i--) {
