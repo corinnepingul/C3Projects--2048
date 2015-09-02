@@ -14,6 +14,33 @@ var board = new Board([
   [0, 0, 0, 0]
 ]);
 
+// we will create a new tile when it enters the board
+var Tile = function(tilePosition) {
+  this.oldRow = tilePosition[0];
+  this.oldCol = tilePosition[1];
+  this.newRow = this.oldRow;
+  this.newCol = this.oldCol;
+  this.number = 2; // NOTE this might be where we use the 2 v. 4 functionality
+}
+
+Tile.prototype.update = function() {
+  // grab tile off page based on old position
+  // change its attributes based on new position
+  // update its old position to be its new position
+  // we will prolly need to tag one of the collision tiles to know which one to keep
+  if (this.number != board.emptyTile) {
+    var tile = $("[data-row='r" + this.oldRow + "'][data-col='c" + this.oldCol + "']"); // grabs old tile element
+    // add the attributes necessary for the tile to display in the right spot on the board
+    tile.attr("data-row", "r" + this.newRow);
+    tile.attr("data-col", "c" + this.newCol);
+    tile.attr("data-val", this.number);
+    tile.text(this.number);
+
+    // remove the old tag, since this tile has been changed & shouldn't be deleted
+    tile.removeClass("old"); // this tile isn't old anymore
+  };
+}
+
 $(document).ready(function() {
   board.display();
   console.log('ready, should be displayed!');
@@ -55,20 +82,20 @@ Board.prototype.display = function() {
     for (var col = 0; col < this.boardLength; col++) {
       var tileValue = this.board[row][col];
 
-      if (tileValue != this.emptyTile) {
-        var tile = $('<div></div>');
-        tile.addClass("tile"); // mark the tile as a tile
-        // add the attributes necessary for the tile to display in the right spot on the board
-        tile.attr("data-row", "r" + row);
-        tile.attr("data-col", "c" + col);
-        tile.attr("data-val", tileValue);
-        tile.text(tileValue);
-
-        // remove the old tag, since this tile has been changed & shouldn't be deleted
-        tile.removeClass("old"); // this tile isn't old anymore
-
-        gameboard.append(tile);
-      };
+      // if (tileValue != this.emptyTile) {
+      //   var tile = $('<div></div>');
+      //   tile.addClass("tile"); // mark the tile as a tile
+      //   // add the attributes necessary for the tile to display in the right spot on the board
+      //   tile.attr("data-row", "r" + row);
+      //   tile.attr("data-col", "c" + col);
+      //   tile.attr("data-val", tileValue);
+      //   tile.text(tileValue);
+      //
+      //   // remove the old tag, since this tile has been changed & shouldn't be deleted
+      //   tile.removeClass("old"); // this tile isn't old anymore
+      //
+      //   gameboard.append(tile);
+      // };
     }
   }
 
