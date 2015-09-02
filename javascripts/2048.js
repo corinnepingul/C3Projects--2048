@@ -2,7 +2,8 @@
 // exist, board!
 
 var Board = function(boardArray) { // board constructor
-  this.board = boardArray;
+  this.oldBoard = boardArray;
+  this.newBoard = boardArray;
   this.boardLength = 4; // board is a square, so this is the same going both ways
   this.emptyTile = 0;
 };
@@ -53,7 +54,7 @@ Board.prototype.display = function() {
 
   for (var row = 0; row < this.boardLength; row++) {
     for (var col = 0; col < this.boardLength; col++) {
-      var tileValue = this.board[row][col];
+      var tileValue = this.newBoard[row][col];
 
       if (tileValue != this.emptyTile) {
         var tile = $('<div></div>');
@@ -74,7 +75,9 @@ Board.prototype.display = function() {
 
   $('.old').remove(); // remove any old tiles that remain
 
-  var bd = this.board // we can delete this before the final PR, but in the mean
+  this.oldBoard  = this.newBoard;
+
+  var bd = this.oldBoard // we can delete this before the final PR, but in the mean
   console.log(bd[0]); // time it's nice to be able to open the console and see
   console.log(bd[1]); // the current iteration of the board!
   console.log(bd[2]);
@@ -97,7 +100,7 @@ Board.prototype.move = function(direction) {
   });
 
   // 4. build new board from results (takes in array of condensed arrays, returns array of uncondensed arrays)
-  this.build(resolvedBoard, direction, reorientedBoard); // NOTE build in its current form mutates the original board
+  this.build(resolvedBoard, direction);
 
   // 5. display board
   this.display();
@@ -119,8 +122,8 @@ Board.prototype.reorient = function(direction) {
 // board.horizontalReorient()
 // this function returns the board as is, since it's already oriented for left-right operations by default
 Board.prototype.horizontalReorient = function() {
-  return this.board.slice(); // slice() will make a copy for us.
-}; // or do we want to modify the board in place?
+  return this.oldBoard;
+};
 
 // board.verticalReorient()
 // this function returns the board twisted 90 degrees, so we can traverse up/down along individual arrays
@@ -131,7 +134,7 @@ Board.prototype.verticalReorient = function() {
     var newRow = [];
 
     for (var oldRow = 0; oldRow < this.boardLength; oldRow++) {
-      newRow.push(this.board[oldRow][oldCol]);
+      newRow.push(this.oldBoard[oldRow][oldCol]);
     };
 
     reorientedBoard.push(newRow);
@@ -221,7 +224,7 @@ Board.prototype.updateScore = function(points) {
   // this will somehow update the total score the player has going
 }
 
-Board.prototype.build = function(condensedArrays, direction, oldBoard) {
+Board.prototype.build = function(condensedArrays, direction) {
   // all this emptySpots stuff is setup for the new tile event function
   var emptySpots = []; // this will eventually be a set of [row, column] positions for all the 0s / empty spots
   var boardLength = this.boardLength;
@@ -250,17 +253,17 @@ Board.prototype.build = function(condensedArrays, direction, oldBoard) {
     extendedArrays.push(extendedRow);
   } // see ya, for
 
-  this.board = extendedArrays; // NOTE this is mutating the original board
+  this.newBoard = extendedArrays;
 
   // call new tile event here
   // NOTE this needs to happen BEFORE the board is reoriented, because the
   // positions created above are based on the current orientation
-  if (oldBoard.toString() != this.board.toString()) {
+  if (this.oldBoard.toString() != this.newBoard.toString()) {
     this.newTile(emptySpots);
   };
 
   // twisting the board back to its original orientation
-  this.board = this.reorient(direction); // NOTE this is mutating the original board
+  this.newBoard = this.reorient(direction);
 }
 
 Board.prototype.newTile = function(emptySpots) {
@@ -275,5 +278,5 @@ Board.prototype.newTile = function(emptySpots) {
   var diceRoll = Math.random();
   var newTileValue = (diceRoll > chanceOfFour) ? 2 : 4;
 
-  this.board[newTileRow][newTileColumn] = newTileValue;
+  this.newBoard[newTileRow][newTileColumn] = newTileValue;
 }
