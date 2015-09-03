@@ -3,25 +3,25 @@ $(document).ready(function() {
   // exist, board!
   var board = new Board([
     [
-      new Tile([0,0], Tile.empty),
-      new Tile([0,1], Tile.empty),
+      new Tile([0,0]),
+      new Tile([0,1], 4),
       new Tile([0,2], Tile.empty),
       new Tile([0,3])
     ],
     [
-      new Tile([1,0], Tile.empty),
-      new Tile([1,1], Tile.empty),
-      new Tile([1,2], Tile.empty),
-      new Tile([1,3], Tile.empty)
+      new Tile([1,0], 4),
+      new Tile([1,1], 8),
+      new Tile([1,2], 16),
+      new Tile([1,3], 8)
     ],
     [
-      new Tile([2,0], Tile.empty),
+      new Tile([2,0], 32),
       new Tile([2, 1]),
-      new Tile([2,2], Tile.empty),
-      new Tile([2,3], Tile.empty)
+      new Tile([2,2], 128),
+      new Tile([2,3], 512)
     ],
     [
-      new Tile([3,0], Tile.empty),
+      new Tile([3,0], 16),
       new Tile([3,1], Tile.empty),
       new Tile([3,2], Tile.empty),
       new Tile([3,3], Tile.empty)

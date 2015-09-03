@@ -32,18 +32,15 @@ Board.prototype.addTile = function(tile, gameboard) {
   gameboard.append(div);
 }
 
+// a couple helper functions for displaying the values of tiles
+function tileNewValues(tile) { return tile.newValue; }
+function tileOldValues(tile) { return tile.oldValue; }
+function tileNewPosition(tile) { }
 
 Board.prototype.display = function() {
   var gameboard = $("#gameboard");
   // mark all the tiles as old, so we know which ones need to be removed later
 
-  var tileNewValues = function(tile) {
-    return tile.newValue;
-  }
-
-  var tileOldValues = function(tile) {
-    return tile.oldValue;
-  }
 
   var bd = this.board // we can delete this before the final PR, but in the mean
   // time it's nice to be able to open the console and see the current
@@ -70,29 +67,41 @@ Board.prototype.move = function(direction) {
   // 1. reorient function => array of arrays in columns or rows
   this.reorient(direction);
 
-  // this.board.forEach(function(row) {
-  //
-  // });
-
   var resolvedBoard = this.board.map(function(currentRow) {
     // 2. each row/column condense function
     var condensedRow = that.condense(currentRow, direction);
+    console.log("show me condense row old");
+    console.log(condensedRow.map(tileOldValues));
+    console.log("show me condense row new");
+    console.log(condensedRow.map(tileNewValues));
+
     // 3. each row/column => compare function
-    that.compareAndResolve(condensedRow, direction);
+    var compare = that.compareAndResolve(condensedRow, direction);
+    console.log("show me compare row old");
+    console.log(compare.map(tileOldValues));
+    console.log("show me compare row new");
+    console.log(compare.map(tileNewValues));
   });
+
+  console.log("show me that the board is condensed")
+  this.display();
 
   // 4. add empty tiles until row is full again
   this.uncondense(direction);
 
   // 5. reorient board back to original orientation
-  this.reorient(direction);
-
-  // 4. build new board from results (takes in array of condensed arrays, returns array of uncondensed arrays)
-  // this.build(resolvedBoard, direction);
-  this.updateTilePositions();
-
-  // 5. display board
-  this.display();
+  // console.log("before reorient");
+  // this.display();
+  // this.reorient(direction);
+  // console.log("after reorient");
+  // this.display();
+  //
+  // // 4. build new board from results (takes in array of condensed arrays, returns array of uncondensed arrays)
+  // // this.build(resolvedBoard, direction);
+  // this.updateTilePositions();
+  //
+  // // 5. display board
+  // this.display();
 }
 
 // board.reorient("down")
@@ -107,6 +116,7 @@ Board.prototype.reorient = function(direction) {
 // this function returns the board twisted 90 degrees, so we can traverse up/down along individual arrays
 Board.prototype.verticalReorient = function() {
   var reorientedBoard = [];
+  console.log(this.board);
 
   for (var oldCol = 0; oldCol < this.boardLength; oldCol++) {
     var newRow = [];
@@ -119,27 +129,41 @@ Board.prototype.verticalReorient = function() {
   };
 
   this.board = reorientedBoard;
+  console.log("show me the reorientation")
+  this.display();
 };
-
-// this method swaps the values of both tiles and updates the positions accordingly
-Board.prototype.swap = function(firstIndex, secondIndex) {
-  var tempFirst = row[firstIndex];
-  var tempSecond = row[secondIndex];
-  row[firstIndex] = row[secondIndex];
-  row[firstIndex].newRow = tempFirst.oldRow;
-  row[firstIndex].newCol = tempFirst.oldCol;
-  row[secondIndex] = tempFirst;
-  row[secondIndex].newRow = tempSecond.oldRow;
-  row[secondIndex].newCol = tempSecond.oldCol;
-}
 
 // board.condense([2, 0, 0, 0], direction) // => [2]
 // this function condenses empty tiles out of a row
 Board.prototype.condense = function(colOrRow, direction) {
-  var row = colOrRow.slice();
+  var row = colOrRow;
+  var swapPassesRequired = row.reduce(function(total, tile) {
+    return (tile.newValue != Tile.empty) ? total + 1 : total;
+  }, 0)
 
+  // this method swaps both the values and updates the positions of the tiles
   var swap = function(firstIndex, secondIndex) {
-    // this method swaps both the values and updates the positions of the tiles
+    // [0, 0, 0, 2] left
+    // [0, 0, 2, 0]
+    // [0, 2, 0, 0]
+    // [2, 0, 0, 0]
+
+    // [2, 0, 0, 0] right
+    // [0, 0, 0, 2]
+
+    // [2, 0, 4, 0] right
+    // [0, 2, 0, 4]
+    // [0, 0, 2, 4]
+
+    // [2, 4, 0, 0] right
+    // [2, 0, 0, 4]
+    // [0, 0, 2, 4]
+
+    // [2, 4, 2, 0] right
+    // [2, 4, 0, 2]
+    // [2, 0, 4, 2]
+    // [0, 2, 4, 2]
+
     var tempFirst = row[firstIndex];
     var tempSecond = row[secondIndex];
     row[firstIndex] = row[secondIndex];
@@ -148,20 +172,35 @@ Board.prototype.condense = function(colOrRow, direction) {
     row[secondIndex] = tempFirst;
     row[secondIndex].newRow = tempSecond.oldRow;
     row[secondIndex].newCol = tempSecond.oldCol;
+
+    // row[firstIndex].newValue = row[secondIndex].oldValue;
+    // row[firstIndex].newRow = row[firstIndex].oldRow;
+    // row[firstIndex].newCol = row[firstIndex].oldCol;
+    // row[secondIndex].newValue = row[firstIndex].oldValue;
+    // row[secondIndex].newRow = row[secondIndex].oldRow;
+    // row[secondIndex].newCol = row[secondIndex].oldCol;
   }
 
   if (direction == "left" || direction == "up") {
     // go backwards
-    for (var i = (row.length - 1); i > 0; i--) {
-      if (row[i].oldValue != Tile.empty && row[i - 1].oldValue == Tile.empty) {
-        swap(i, i - 1);
+    for (var k = 0; k < 3; k++) {
+      // we need to run this loop a maximum of three times
+      // this is a good place to refactor if we have time
+      for (var i = (row.length - 1); i > 0; i--) {
+        if (row[i].newValue != Tile.empty && row[i - 1].newValue == Tile.empty) {
+          swap(i, i - 1);
+        }
       }
     }
   } else { // right or down
     // go forwards
-    for (var j = 0; j < (row.length - 1); j++) {
-      if (row[j].oldValue != Tile.empty && row[j + 1].oldValue == Tile.empty) {
-        swap(j, j + 1);
+    for (var l = 0; l < 3; l++) {
+      // we need to run this loop a maximum of three times
+      // this is a good place to refactor if we have time
+      for (var j = 0; j < (row.length - 1); j++) {
+        if (row[j].newValue != Tile.empty && row[j + 1].newValue == Tile.empty) {
+          swap(j, j + 1);
+        }
       }
     }
   }
@@ -182,14 +221,14 @@ Board.prototype.compareAndResolve = function(condensedColOrRow, direction) {
     condensedColOrRow.reverse();// [2, 4, 4, 4].reverse() => [4, 4, 4, 2]
     this.moveForward(condensedColOrRow, direction); // board.moveForward([4, 4, 4, 2]) // => [8, 4, 2]
     condensedColOrRow.reverse(); // [2, 4, 8]
-    return;
+    return condensedColOrRow;
   }
 }
 
 // board.moveForward([2, 4, 4, 4]) // => [2, 8, 4]
 // this function traverses through a row, collapsing same-number pairs along the way
 Board.prototype.moveForward = function(condensedColOrRow, direction) {
-  for (i = 0; i < condensedColOrRow.length; i++) {
+  for (i = 0; i < (condensedColOrRow.length -1); i++) {
     var currentTile = condensedColOrRow[i];
     var nextTile = condensedColOrRow[i + 1];
 
@@ -232,54 +271,7 @@ Board.prototype.moveForward = function(condensedColOrRow, direction) {
       currentTile.slide();
     }
   }
-}
-
-// board.moveForward([2, 4, 4, 4]) // => [2, 8, 4]
-// this function traverses through a row, collapsing same-number pairs along the way
-Board.prototype.moveForward = function(condensedColOrRow, direction) {
-  for (i = 0; i < condensedColOrRow.length; i++) {
-    var currentTile = condensedColOrRow[i];
-    var nextTile = condensedColOrRow[i + 1];
-
-    if (currentTile.oldValue == Tile.empty) {
-      break; // there are no more tiles with values left
-    }
-
-    if (currentTile.oldValue == nextTile.oldValue) {
-      // slide the nextTile into the current Tile's location
-      // then delete the nexttile
-      // add a new tile (or update the first) -- this will pop into existence
-      if (i + 2 < this.boardLength) {
-        var firstTile = condensedColOrRow[i + 2];
-
-        if (i + 3 < this.boardLength) {
-          // we have two tiles to adjust
-          var secondTile = condensedColOrRow[i + 3];
-
-          secondTile.newRow = firstTile.newRow;
-          secondTile.newCol = firstTile.newCol;
-        }
-
-        firstTile.newRow = nextTile.newRow;
-        firstTile.newCol = nextTile.newCol;
-      }
-
-      nextTile.newRow = currentTile.newRow;
-      nextTile.newCol = currentTile.newCol;
-
-      nextTile.collide();
-
-      currentTile.newValue = currentTile.oldValue * 2;
-      currentTile.pop();
-
-      this.updateScore(newTile);
-
-      // this removes nextTile from the array
-      condensedColOrRow.splice(i + 1, 1);
-    } else {
-      currentTile.slide();
-    }
-  }
+  return condensedColOrRow;
 }
 
 Board.prototype.updateScore = function(points) {
