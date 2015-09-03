@@ -8,7 +8,6 @@ var Board = function(boardArray) {
 //   return new Tile([row, column], empty);
 // }
 
-
 // this function sets up the initial div elements for the board display
 Board.prototype.setup = function() {
   var gameboard = $("#gameboard");
@@ -33,9 +32,8 @@ Board.prototype.addTile = function(tile, gameboard) {
 }
 
 // a couple helper functions for displaying the values of tiles
-function tileNewValues(tile) { return tile.newValue; }
-function tileOldValues(tile) { return tile.oldValue; }
-function tileNewPosition(tile) { }
+function tileNew(tile) { return tile.newValue + " @ " + tile.newRow + ", " + tile.newCol; }
+function tileOld(tile) { return tile.oldValue + " @ " + tile.oldRow + ", " + tile.oldCol; }
 
 Board.prototype.display = function() {
   var gameboard = $("#gameboard");
@@ -46,16 +44,16 @@ Board.prototype.display = function() {
   // time it's nice to be able to open the console and see the current
   // iteration of the board!
   console.log("here are the old values:")
-  console.log(bd[0].map(tileOldValues));
-  console.log(bd[1].map(tileOldValues));
-  console.log(bd[2].map(tileOldValues));
-  console.log(bd[3].map(tileOldValues));
+  console.log(bd[0].map(tileOld));
+  console.log(bd[1].map(tileOld));
+  console.log(bd[2].map(tileOld));
+  console.log(bd[3].map(tileOld));
 
   console.log("here are the new values:")
-  console.log(bd[0].map(tileNewValues));
-  console.log(bd[1].map(tileNewValues));
-  console.log(bd[2].map(tileNewValues));
-  console.log(bd[3].map(tileNewValues));
+  console.log(bd[0].map(tileNew));
+  console.log(bd[1].map(tileNew));
+  console.log(bd[2].map(tileNew));
+  console.log(bd[3].map(tileNew));
 }
 
 // board.move("left")
@@ -71,16 +69,16 @@ Board.prototype.move = function(direction) {
     // 2. each row/column condense function
     var condensedRow = that.condense(currentRow, direction);
     console.log("show me condense row old");
-    console.log(condensedRow.map(tileOldValues));
+    console.log(condensedRow.map(tileOld));
     console.log("show me condense row new");
-    console.log(condensedRow.map(tileNewValues));
+    console.log(condensedRow.map(tileNew));
 
     // 3. each row/column => compare function
     var compare = that.compareAndResolve(condensedRow, direction);
     console.log("show me compare row old");
-    console.log(compare.map(tileOldValues));
+    console.log(compare.map(tileOld));
     console.log("show me compare row new");
-    console.log(compare.map(tileNewValues));
+    console.log(compare.map(tileNew));
   });
 
   console.log("show me that the board is condensed")
@@ -89,6 +87,17 @@ Board.prototype.move = function(direction) {
   // 4. add empty tiles until row is full again
   this.uncondense(direction);
 
+  this.reorient(direction);
+  this.display();
+  //                  ["2 @ 0, 0", "4 @ 1, 0", "32 @ 2, 0", "16 @ 3, 0"]
+  // 2048-board.js:49 ["0 @ 3, 1", "4 @ 0, 1", "8 @ 1, 1", "2 @ 2, 1"]
+  // 2048-board.js:50 ["0 @ 0, 2", "0 @ 3, 2", "16 @ 1, 2", "128 @ 2, 2"]
+  // 2048-board.js:51 ["0 @ 3, 3", "2 @ 0, 3", "8 @ 1, 3", "512 @ 2, 3"]
+  //
+  //                  ["2 @ 0, 0", "4 @ 1, 0", "32 @ 2, 0", "16 @ 3, 0"]
+  // 2048-board.js:55 ["0 @ 0, 1", "4 @ 3, 1", "8 @ 3, 1", "2 @ 3, 1"]
+  // 2048-board.js:56 ["0 @ 0, 2", "0 @ 1, 2", "16 @ 3, 2", "128 @ 3, 2"]
+  // 2048-board.js:57 ["0 @ 0, 3", "2 @ 3, 3", "8 @ 3, 3", "512 @ 3, 3"]
   // 5. reorient board back to original orientation
   // console.log("before reorient");
   // this.display();
@@ -164,21 +173,30 @@ Board.prototype.condense = function(colOrRow, direction) {
     // [2, 0, 4, 2]
     // [0, 2, 4, 2]
 
-    var tempFirst = row[firstIndex];
-    var tempSecond = row[secondIndex];
-    row[firstIndex] = row[secondIndex];
-    row[firstIndex].newRow = tempFirst.oldRow;
-    row[firstIndex].newCol = tempFirst.oldCol;
-    row[secondIndex] = tempFirst;
-    row[secondIndex].newRow = tempSecond.oldRow;
-    row[secondIndex].newCol = tempSecond.oldCol;
+    // show me condense row old
+    // 2048-board.js:73 ["0 @ 3, 1", "4 @ 0, 1", "8 @ 1, 1", "2 @ 2, 1"]
+    // 2048-board.js:74 show me condense row new
+    // 2048-board.js:75 ["0 @ 0, 1", "4 @ 3, 1", "8 @ 3, 1", "2 @ 3, 1"]
+    // show me condense row old
+    // 2048-board.js:73 ["0 @ 3, 1", "4 @ 0, 1", "8 @ 1, 1", "2 @ 2, 1"]
+    // 2048-board.js:74 show me condense row new
+    // 2048-board.js:75 ["0 @ 0, 1", "4 @ 0, 1", "8 @ 1, 1", "2 @ 2, 1"]
+    // [4, 8, 2, 0] => 4, 8, 0, 2 => 4, 0, 8, 2 => 0, 4, 8, 2
+    // 0        3,1         2,1        1,1        0,1
+    //       2,1               2,1?
 
-    // row[firstIndex].newValue = row[secondIndex].oldValue;
-    // row[firstIndex].newRow = row[firstIndex].oldRow;
-    // row[firstIndex].newCol = row[firstIndex].oldCol;
-    // row[secondIndex].newValue = row[firstIndex].oldValue;
-    // row[secondIndex].newRow = row[secondIndex].oldRow;
-    // row[secondIndex].newCol = row[secondIndex].oldCol;
+    var first = row[firstIndex];
+    var second = row[secondIndex];
+    var tempFirst = new Tile([first.newRow, first.newCol], first.newValue);
+    var tempSecond = new Tile([second.newRow, second.newCol], second.newValue);
+    // var tempFirst = row[firstIndex]; // <= this is a pointer to the tile object, not a copy
+    // var tempSecond = row[secondIndex]; // <= this is a pointer to the tile object, not a copy
+    first = second; // <= this updates the pointer to be to the referred tile object
+    first.newRow = tempFirst.newRow; // <= this updates the pointer to be to the referred tile object's newRow, not to a separate temp
+    first.newCol = tempFirst.newCol; // <= this updates the pointer to be to the referred tile object's newRow, not to a separate temp
+    second = tempFirst; // <= this updates the pointer to be to the referred tile object
+    second.newRow = tempSecond.newRow; // <= this updates the pointer to be to the referred tile object's newRow, not to a separate temp
+    second.newCol = tempSecond.newCol; // <= this updates the pointer to be to the referred tile object's newRow, not to a separate temp
   }
 
   if (direction == "left" || direction == "up") {
@@ -232,11 +250,11 @@ Board.prototype.moveForward = function(condensedColOrRow, direction) {
     var currentTile = condensedColOrRow[i];
     var nextTile = condensedColOrRow[i + 1];
 
-    if (currentTile.oldValue == Tile.empty) {
+    if (currentTile.newValue == Tile.empty) {
       break; // there are no more tiles with values left
     }
 
-    if (currentTile.oldValue == nextTile.oldValue) {
+    if (currentTile.newValue == nextTile.newValue) {
       // slide the nextTile into the current Tile's location
       // then delete the nexttile
       // add a new tile (or update the first) -- this will pop into existence
@@ -260,7 +278,7 @@ Board.prototype.moveForward = function(condensedColOrRow, direction) {
 
       nextTile.collide();
 
-      currentTile.newValue = currentTile.oldValue * 2;
+      currentTile.newValue = currentTile.newValue * 2;
       currentTile.pop();
 
       this.updateScore(newTile);
@@ -302,62 +320,62 @@ Board.prototype.uncondense = function(direction) {
   }
 }
 
-Board.prototype.build = function(condensedArrays, direction, oldBoard) {
-  // all this emptySpots stuff is setup for the new tile event function
-  var emptySpots = []; // this will eventually be a set of [row, column] positions for all the 0s / empty spots
-  var boardLength = this.boardLength;
-  var emptyTile = Tile.empty;
+// Board.prototype.build = function(condensedArrays, direction, oldBoard) {
+//   // all this emptySpots stuff is setup for the new tile event function
+//   var emptySpots = []; // this will eventually be a set of [row, column] positions for all the 0s / empty spots
+//   var boardLength = this.boardLength;
+//   var emptyTile = Tile.empty;
+//
+//   var rebuild = function(array, currentRow) { // currentRow is for emptySpots positions
+//     while (array.length < boardLength) {
+//       if (direction == "left" || direction == "up") {
+//         // [2, 4] & we're about to push in Tile.empty at index 2
+//         currentColumn = array.length; // currentColumn is for emptySpots positions
+//         array.push(emptyTile);
+//       } else { // "right" || "down"
+//         // [2, 4] & we're about to unshift in Tile.empty at eventual index 1 (4 - 2 - 1 == 1)
+//         currentColumn = boardLength - array.length - 1; // currentColumn is for emptySpots positions
+//         array.unshift(emptyTile);
+//       }; // see ya, if
+//
+//       emptySpots.push([currentRow, currentColumn]); // tell emptySpots where we just filled in an empty tile
+//     } // see ya, while
+//     return array;
+//   } // see ya, rebuild()
+//
+//   extendedArrays = [];
+//   for (var currentRow = 0; currentRow < boardLength; currentRow++) {
+//     var extendedRow = rebuild(condensedArrays[currentRow], currentRow); // this reminds me of ruby's .each_with_index...
+//     extendedArrays.push(extendedRow);
+//   } // see ya, for
+//
+//   this.board = extendedArrays; // NOTE this is mutating the original board
+//
+//   // call new tile event here
+//   // NOTE this needs to happen BEFORE the board is reoriented, because the
+//   // positions created above are based on the current orientation
+//   if (oldBoard.toString() != this.board.toString()) {
+//     this.newTile(emptySpots);
+//   };
+//
+//   // twisting the board back to its original orientation
+//   this.board = this.reorient(direction); // NOTE this is mutating the original board
+// }
 
-  var rebuild = function(array, currentRow) { // currentRow is for emptySpots positions
-    while (array.length < boardLength) {
-      if (direction == "left" || direction == "up") {
-        // [2, 4] & we're about to push in Tile.empty at index 2
-        currentColumn = array.length; // currentColumn is for emptySpots positions
-        array.push(emptyTile);
-      } else { // "right" || "down"
-        // [2, 4] & we're about to unshift in Tile.empty at eventual index 1 (4 - 2 - 1 == 1)
-        currentColumn = boardLength - array.length - 1; // currentColumn is for emptySpots positions
-        array.unshift(emptyTile);
-      }; // see ya, if
-
-      emptySpots.push([currentRow, currentColumn]); // tell emptySpots where we just filled in an empty tile
-    } // see ya, while
-    return array;
-  } // see ya, rebuild()
-
-  extendedArrays = [];
-  for (var currentRow = 0; currentRow < boardLength; currentRow++) {
-    var extendedRow = rebuild(condensedArrays[currentRow], currentRow); // this reminds me of ruby's .each_with_index...
-    extendedArrays.push(extendedRow);
-  } // see ya, for
-
-  this.board = extendedArrays; // NOTE this is mutating the original board
-
-  // call new tile event here
-  // NOTE this needs to happen BEFORE the board is reoriented, because the
-  // positions created above are based on the current orientation
-  if (oldBoard.toString() != this.board.toString()) {
-    this.newTile(emptySpots);
-  };
-
-  // twisting the board back to its original orientation
-  this.board = this.reorient(direction); // NOTE this is mutating the original board
-}
-
-Board.prototype.newTile = function(emptySpots) {
-  // pick a location to insert the new tile at
-  var randomIndex = Math.floor(Math.random() * (emptySpots.length));
-  newTileLocation = emptySpots[randomIndex];
-  newTileRow = newTileLocation[0];
-  newTileColumn = newTileLocation[1];
-
-  // pick what new tile to insert
-  var chanceOfFour = 0.15; // 15% chance of four
-  var diceRoll = Math.random();
-  var newTileValue = (diceRoll > chanceOfFour) ? 2 : 4;
-
-  this.board[newTileRow][newTileColumn] = newTileValue;
-}
+// Board.prototype.newTile = function(emptySpots) {
+//   // pick a location to insert the new tile at
+//   var randomIndex = Math.floor(Math.random() * (emptySpots.length));
+//   newTileLocation = emptySpots[randomIndex];
+//   newTileRow = newTileLocation[0];
+//   newTileColumn = newTileLocation[1];
+//
+//   // pick what new tile to insert
+//   var chanceOfFour = 0.15; // 15% chance of four
+//   var diceRoll = Math.random();
+//   var newTileValue = (diceRoll > chanceOfFour) ? 2 : 4;
+//
+//   this.board[newTileRow][newTileColumn] = newTileValue;
+// }
 
 Board.prototype.updateTilePositions = function() {
   this.board.forEach(function(row) {
