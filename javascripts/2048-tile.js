@@ -9,7 +9,7 @@ var Tile = function(tilePosition, tileValue) {
   this.newValue = this.oldValue;
 }
 
-Tile.empty = function() { return "0" };
+Tile.empty = "0";
 
 Tile.prototype.findElement = function() {
   var tile = $("[data-row='r" + this.oldRow + "'][data-col='c" + this.oldCol + "']"); // grabs old tile element

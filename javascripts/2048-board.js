@@ -32,15 +32,33 @@ Board.prototype.addTile = function(tile, gameboard) {
   gameboard.append(div);
 }
 
+
 Board.prototype.display = function() {
   var gameboard = $("#gameboard");
   // mark all the tiles as old, so we know which ones need to be removed later
 
+  var tileNewValues = function(tile) {
+    return tile.newValue;
+  }
+
+  var tileOldValues = function(tile) {
+    return tile.oldValue;
+  }
+
   var bd = this.board // we can delete this before the final PR, but in the mean
-  console.log(bd[0]); // time it's nice to be able to open the console and see
-  console.log(bd[1]); // the current iteration of the board!
-  console.log(bd[2]);
-  console.log(bd[3]);
+  // time it's nice to be able to open the console and see the current
+  // iteration of the board!
+  console.log("here are the old values:")
+  console.log(bd[0].map(tileOldValues));
+  console.log(bd[1].map(tileOldValues));
+  console.log(bd[2].map(tileOldValues));
+  console.log(bd[3].map(tileOldValues));
+
+  console.log("here are the new values:")
+  console.log(bd[0].map(tileNewValues));
+  console.log(bd[1].map(tileNewValues));
+  console.log(bd[2].map(tileNewValues));
+  console.log(bd[3].map(tileNewValues));
 }
 
 // board.move("left")
@@ -102,6 +120,18 @@ Board.prototype.verticalReorient = function() {
 
   this.board = reorientedBoard;
 };
+
+// this method swaps the values of both tiles and updates the positions accordingly
+Board.prototype.swap = function(firstIndex, secondIndex) {
+  var tempFirst = row[firstIndex];
+  var tempSecond = row[secondIndex];
+  row[firstIndex] = row[secondIndex];
+  row[firstIndex].newRow = tempFirst.oldRow;
+  row[firstIndex].newCol = tempFirst.oldCol;
+  row[secondIndex] = tempFirst;
+  row[secondIndex].newRow = tempSecond.oldRow;
+  row[secondIndex].newCol = tempSecond.oldCol;
+}
 
 // board.condense([2, 0, 0, 0], direction) // => [2]
 // this function condenses empty tiles out of a row
