@@ -1,10 +1,7 @@
-var empty = "0";
-
 // Board constructor function
 var Board = function(boardArray) {
   this.board = boardArray;
   this.boardLength = 4; // board is a square, so this is the same going both ways
-  this.emptyTile = empty;
 };
 
 // Board.prototype.emptyTile = function(row, column) {
@@ -15,21 +12,24 @@ var Board = function(boardArray) {
 // this function sets up the initial div elements for the board display
 Board.prototype.setup = function() {
   var gameboard = $("#gameboard");
-
+  var that = this;
   this.board.forEach(function(row) {
     row.forEach(function(tile) {
-      if (tile.oldValue != empty) {
-        var div = $('<div></div>');
-        div.addClass('tile');
-        div.attr("data-row", "r" + tile.oldRow);
-        div.attr("data-col", "c" + tile.oldCol);
-        div.attr("data-val", tile.oldValue);
-        div.text(tile.oldValue);
-
-        gameboard.append(div);
-      }
+      if (tile.oldValue != Tile.empty)
+        that.addTile(tile, gameboard);
     });
   });
+}
+
+Board.prototype.addTile = function(tile, gameboard) {
+  var div = $('<div></div>');
+  div.addClass('tile');
+  div.attr("data-row", "r" + tile.oldRow);
+  div.attr("data-col", "c" + tile.oldCol);
+  div.attr("data-val", tile.oldValue);
+  div.text(tile.oldValue);
+
+  gameboard.append(div);
 }
 
 Board.prototype.display = function() {
@@ -46,20 +46,32 @@ Board.prototype.display = function() {
 // board.move("left")
 // this is the movement controlling function that calls each step until a move is complete
 Board.prototype.move = function(direction) {
-  var that = this; // make this, which is the board object .move is being called on, available to inner scopes
+  // make this, which is the board object .move is being called on, available to inner scopes
+  var that = this;
 
   // 1. reorient function => array of arrays in columns or rows
-  var reorientedBoard = this.reorient(direction);
+  this.reorient(direction);
 
-  var resolvedBoard = reorientedBoard.map(function(currentRow) {
-    // 2. each row/column condense function (LOOP)
+  // this.board.forEach(function(row) {
+  //
+  // });
+
+  var resolvedBoard = this.board.map(function(currentRow) {
+    // 2. each row/column condense function
     var condensedRow = that.condense(currentRow, direction);
-    // 3. each row/column => compare function (LOOP)
-    return that.compareAndResolve(condensedRow, direction);
+    // 3. each row/column => compare function
+    that.compareAndResolve(condensedRow, direction);
   });
 
+  // 4. add empty tiles until row is full again
+  this.uncondense(direction);
+
+  // 5. reorient board back to original orientation
+  this.reorient(direction);
+
   // 4. build new board from results (takes in array of condensed arrays, returns array of uncondensed arrays)
-  this.build(resolvedBoard, direction, reorientedBoard); // NOTE build in its current form mutates the original board
+  // this.build(resolvedBoard, direction);
+  this.updateTilePositions();
 
   // 5. display board
   this.display();
@@ -68,21 +80,10 @@ Board.prototype.move = function(direction) {
 // board.reorient("down")
 // reorients the board into arrays based on direction
 Board.prototype.reorient = function(direction) {
-  var method;
-
-  if (direction == "left" || direction == "right")
-    method = "horizontalReorient";
-  else // "up" || "down"
-    method = "verticalReorient";
-
-  return this[method].call(this); // execute the function in the current context
+  if (direction == "up" || direction == "down") {
+    return this.verticalReorient();
+  }
 };
-
-// board.horizontalReorient()
-// this function returns the board as is, since it's already oriented for left-right operations by default
-Board.prototype.horizontalReorient = function() {
-  return this.board.slice(); // slice() will make a copy for us.
-}; // or do we want to modify the board in place?
 
 // board.verticalReorient()
 // this function returns the board twisted 90 degrees, so we can traverse up/down along individual arrays
@@ -99,7 +100,7 @@ Board.prototype.verticalReorient = function() {
     reorientedBoard.push(newRow);
   };
 
-  return reorientedBoard;
+  this.board = reorientedBoard;
 };
 
 // board.condense([2, 0, 0, 0], direction) // => [2]
@@ -122,14 +123,14 @@ Board.prototype.condense = function(colOrRow, direction) {
   if (direction == "left" || direction == "up") {
     // go backwards
     for (var i = (row.length - 1); i > 0; i--) {
-      if (row[i].oldValue != this.emptyTile && row[i - 1].oldValue == this.emptyTile) {
+      if (row[i].oldValue != Tile.empty && row[i - 1].oldValue == Tile.empty) {
         swap(i, i - 1);
       }
     }
   } else { // right or down
     // go forwards
     for (var j = 0; j < (row.length - 1); j++) {
-      if (row[j].oldValue != this.emptyTile && row[j + 1].oldValue == this.emptyTile) {
+      if (row[j].oldValue != Tile.empty && row[j + 1].oldValue == Tile.empty) {
         swap(j, j + 1);
       }
     }
@@ -143,13 +144,15 @@ Board.prototype.condense = function(colOrRow, direction) {
 // backward and sends the row along to the function that will do the traversal.
 Board.prototype.compareAndResolve = function(condensedColOrRow, direction) {
   if (direction == "up" || direction == "left") {
-  // up & left -> starts at the beginning of the array, moves forward
+    // should start at the beginning of the array & move forward
     return this.moveForward(condensedColOrRow, direction);
-  } else { // down & right -> starts at the end of the array, moves backward
-    condensedColOrRow.reverse();
-    this.moveForward(condensedColOrRow, direction);
-    condensedColOrRow.reverse();
-    return
+  } else { // down & right
+    // should start at the end of the array & move backward
+    // or we can reverse, use moveForward, & reverse again :)
+    condensedColOrRow.reverse();// [2, 4, 4, 4].reverse() => [4, 4, 4, 2]
+    this.moveForward(condensedColOrRow, direction); // board.moveForward([4, 4, 4, 2]) // => [8, 4, 2]
+    condensedColOrRow.reverse(); // [2, 4, 8]
+    return;
   }
 }
 
@@ -160,7 +163,7 @@ Board.prototype.moveForward = function(condensedColOrRow, direction) {
     var currentTile = condensedColOrRow[i];
     var nextTile = condensedColOrRow[i + 1];
 
-    if (currentTile.oldValue == this.emptyTile) {
+    if (currentTile.oldValue == Tile.empty) {
       break; // there are no more tiles with values left
     }
 
@@ -193,6 +196,53 @@ Board.prototype.moveForward = function(condensedColOrRow, direction) {
 
       this.updateScore(newTile);
 
+      // this removes nextTile from the array
+      condensedColOrRow.splice(i + 1, 1);
+    } else {
+      currentTile.slide();
+    }
+  }
+}
+
+// board.moveForward([2, 4, 4, 4]) // => [2, 8, 4]
+// this function traverses through a row, collapsing same-number pairs along the way
+Board.prototype.moveForward = function(condensedColOrRow, direction) {
+  for (i = 0; i < condensedColOrRow.length; i++) {
+    var currentTile = condensedColOrRow[i];
+    var nextTile = condensedColOrRow[i + 1];
+
+    if (currentTile.oldValue == Tile.empty) {
+      break; // there are no more tiles with values left
+    }
+
+    if (currentTile.oldValue == nextTile.oldValue) {
+      // slide the nextTile into the current Tile's location
+      // then delete the nexttile
+      // add a new tile (or update the first) -- this will pop into existence
+      if (i + 2 < this.boardLength) {
+        var firstTile = condensedColOrRow[i + 2];
+
+        if (i + 3 < this.boardLength) {
+          // we have two tiles to adjust
+          var secondTile = condensedColOrRow[i + 3];
+
+          secondTile.newRow = firstTile.newRow;
+          secondTile.newCol = firstTile.newCol;
+        }
+
+        firstTile.newRow = nextTile.newRow;
+        firstTile.newCol = nextTile.newCol;
+      }
+
+      nextTile.newRow = currentTile.newRow;
+      nextTile.newCol = currentTile.newCol;
+
+      nextTile.collide();
+
+      currentTile.newValue = currentTile.oldValue * 2;
+      currentTile.pop();
+
+      this.updateScore(newTile);
 
       // this removes nextTile from the array
       condensedColOrRow.splice(i + 1, 1);
@@ -206,20 +256,44 @@ Board.prototype.updateScore = function(points) {
   // this will somehow update the total score the player has going
 }
 
+Board.prototype.uncondense = function(direction) {
+  for (var row = 0; row < this.boardLength; row++) {
+    for (var column = 0; column < this.boardLength; column++) {
+      if (!this.board[row][column]) {
+        var tile;
+
+        if (direction == "left" || direction == "right") {
+          tile = this.emptyTile(row, column, Tile.empty());
+        } else { // direction == "up" || "down"
+          tile = this.emptyTile(column, row, Tile.empty());
+        };
+
+        if (direction == "left" || direction == "up") {
+          this.board[row].push(tile);
+        } else { // direction == "right" || direction == "down"
+          this.board[row].unshift(tile);
+        };
+
+        this.addTile(tile);
+      }
+    }
+  }
+}
+
 Board.prototype.build = function(condensedArrays, direction, oldBoard) {
   // all this emptySpots stuff is setup for the new tile event function
   var emptySpots = []; // this will eventually be a set of [row, column] positions for all the 0s / empty spots
   var boardLength = this.boardLength;
-  var emptyTile = this.emptyTile;
+  var emptyTile = Tile.empty;
 
   var rebuild = function(array, currentRow) { // currentRow is for emptySpots positions
     while (array.length < boardLength) {
       if (direction == "left" || direction == "up") {
-        // [2, 4] & we're about to push in this.emptyTile at index 2
+        // [2, 4] & we're about to push in Tile.empty at index 2
         currentColumn = array.length; // currentColumn is for emptySpots positions
         array.push(emptyTile);
       } else { // "right" || "down"
-        // [2, 4] & we're about to unshift in this.emptyTile at eventual index 1 (4 - 2 - 1 == 1)
+        // [2, 4] & we're about to unshift in Tile.empty at eventual index 1 (4 - 2 - 1 == 1)
         currentColumn = boardLength - array.length - 1; // currentColumn is for emptySpots positions
         array.unshift(emptyTile);
       }; // see ya, if
@@ -261,4 +335,13 @@ Board.prototype.newTile = function(emptySpots) {
   var newTileValue = (diceRoll > chanceOfFour) ? 2 : 4;
 
   this.board[newTileRow][newTileColumn] = newTileValue;
+}
+
+Board.prototype.updateTilePositions = function() {
+  this.board.forEach(function(row) {
+    row.forEach(function(tile) {
+      tile.oldRow = tile.newRow;
+      tile.oldColumn = tile.newColumn;
+    })
+  });
 }

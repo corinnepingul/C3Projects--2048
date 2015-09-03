@@ -2,10 +2,30 @@ $(document).ready(function() {
   // declare a mystical global board
   // exist, board!
   var board = new Board([
-    [new Tile([0,0], empty), new Tile([0,1], empty), new Tile([0,2], empty), new Tile([0,3])],
-    [new Tile([1,0], empty), new Tile([1,1], empty), new Tile([1,2], empty), new Tile([1,3], empty)],
-    [new Tile([2,0], empty), new Tile([2, 1]), new Tile([2,2], empty), new Tile([2,3], empty)],
-    [new Tile([3,0], empty), new Tile([3,1], empty), new Tile([3,2], empty), new Tile([3,3], empty)]
+    [
+      new Tile([0,0], Tile.empty),
+      new Tile([0,1], Tile.empty),
+      new Tile([0,2], Tile.empty),
+      new Tile([0,3])
+    ],
+    [
+      new Tile([1,0], Tile.empty),
+      new Tile([1,1], Tile.empty),
+      new Tile([1,2], Tile.empty),
+      new Tile([1,3], Tile.empty)
+    ],
+    [
+      new Tile([2,0], Tile.empty),
+      new Tile([2, 1]),
+      new Tile([2,2], Tile.empty),
+      new Tile([2,3], Tile.empty)
+    ],
+    [
+      new Tile([3,0], Tile.empty),
+      new Tile([3,1], Tile.empty),
+      new Tile([3,2], Tile.empty),
+      new Tile([3,3], Tile.empty)
+    ]
   ]);
 
   // now exist on the screen, board!

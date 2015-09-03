@@ -1,5 +1,3 @@
-var empty = "0";
-
 // Tile constructor function
 // we will create a new tile when it enters the board
 var Tile = function(tilePosition, tileValue) {
@@ -10,6 +8,8 @@ var Tile = function(tilePosition, tileValue) {
   this.oldValue = tileValue || 2; // NOTE this might be where we use the 2 v. 4 functionality
   this.newValue = this.oldValue;
 }
+
+Tile.empty = function() { return "0" };
 
 Tile.prototype.findElement = function() {
   var tile = $("[data-row='r" + this.oldRow + "'][data-col='c" + this.oldCol + "']"); // grabs old tile element
@@ -26,7 +26,7 @@ Tile.prototype.slide = function() {
 
   var tile = this.findElement(); // grabs old tile element
   // add the attributes necessary for the tile to display in the right spot on the board
-  if (tile.newValue != empty) {
+  if (tile.newValue != Tile.empty) {
     tile.attr("data-row", "r" + this.newRow);
     tile.attr("data-col", "c" + this.newCol);
     tile.attr("data-val", this.newValue);
