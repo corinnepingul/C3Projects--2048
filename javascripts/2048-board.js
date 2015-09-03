@@ -1,12 +1,18 @@
 var empty = "0";
 
-// board constructor function
+// Board constructor function
 var Board = function(boardArray) {
   this.board = boardArray;
   this.boardLength = 4; // board is a square, so this is the same going both ways
   this.emptyTile = empty;
 };
 
+// Board.prototype.emptyTile = function(row, column) {
+//   return new Tile([row, column], empty);
+// }
+
+
+// this function sets up the initial div elements for the board display
 Board.prototype.setup = function() {
   var gameboard = $("#gameboard");
 
@@ -29,30 +35,6 @@ Board.prototype.setup = function() {
 Board.prototype.display = function() {
   var gameboard = $("#gameboard");
   // mark all the tiles as old, so we know which ones need to be removed later
-  $('.tile').addClass('old');
-
-  for (var row = 0; row < this.boardLength; row++) {
-    for (var col = 0; col < this.boardLength; col++) {
-      var tileValue = this.board[row][col];
-
-      // if (tileValue != this.emptyTile) {
-      //   var tile = $('<div></div>');
-      //   tile.addClass("tile"); // mark the tile as a tile
-      //   // add the attributes necessary for the tile to display in the right spot on the board
-      //   tile.attr("data-row", "r" + row);
-      //   tile.attr("data-col", "c" + col);
-      //   tile.attr("data-val", tileValue);
-      //   tile.text(tileValue);
-      //
-      //   // remove the old tag, since this tile has been changed & shouldn't be deleted
-      //   tile.removeClass("old"); // this tile isn't old anymore
-      //
-      //   gameboard.append(tile);
-      // };
-    }
-  }
-
-  $('.old').remove(); // remove any old tiles that remain
 
   var bd = this.board // we can delete this before the final PR, but in the mean
   console.log(bd[0]); // time it's nice to be able to open the console and see
@@ -163,9 +145,11 @@ Board.prototype.compareAndResolve = function(condensedColOrRow, direction) {
   if (direction == "up" || direction == "left") {
   // up & left -> starts at the beginning of the array, moves forward
     return this.moveForward(condensedColOrRow, direction);
-  } else {
-  // down & right -> starts at the end of the array, moves backward
-    return this.moveBackward(condensedColOrRow, direction);
+  } else { // down & right -> starts at the end of the array, moves backward
+    condensedColOrRow.reverse();
+    this.moveForward(condensedColOrRow, direction);
+    condensedColOrRow.reverse();
+    return
   }
 }
 
@@ -216,30 +200,6 @@ Board.prototype.moveForward = function(condensedColOrRow, direction) {
       currentTile.slide();
     }
   }
-}
-
-// board.moveBackward([2, 4, 4, 4]) // => [2, 4, 8]
-// this function traverses through a row, collapsing same-number pairs along the way
-Board.prototype.moveBackward = function(condensedColOrRow, direction) {
-  var resolvedColOrRow = [];
-
-  for (i = condensedColOrRow.length - 1; i >= 0; i--) {
-    var currentTileValue = condensedColOrRow[i];
-    var nextTileValue = condensedColOrRow[i - 1];
-
-    if (currentTileValue == nextTileValue) {
-      var newTileValue = currentTileValue * 2;
-
-      resolvedColOrRow.unshift(newTileValue); // adds to beginning of array
-      this.updateScore(newTileValue);
-
-      i -= 1; // this will increment by two (once here and once as defined by for loop)
-    } else {
-      resolvedColOrRow.unshift(condensedColOrRow[i]);
-    }
-  }
-
-  return resolvedColOrRow;
 }
 
 Board.prototype.updateScore = function(points) {

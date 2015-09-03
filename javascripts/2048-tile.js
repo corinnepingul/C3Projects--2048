@@ -1,5 +1,6 @@
 var empty = "0";
 
+// Tile constructor function
 // we will create a new tile when it enters the board
 var Tile = function(tilePosition, tileValue) {
   this.oldRow = tilePosition[0];
