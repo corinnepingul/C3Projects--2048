@@ -63,7 +63,7 @@ function moveTile(tile, direction) {
       tempBoard.move("right");
       board.animate(tempBoard.board, "right");
       board.board = tempBoard.board;
-      board.display();
+      // board.display();
       break;
   }
 }
@@ -362,21 +362,52 @@ Board.prototype.animate = function(newBoard, direction) {
         if (oldBoard[row][col] != 0) { // we can only resolve it once we find the other tile!
           collision = false;
           console.log("grabbing the location of the second tile from the page");
-          $('[][]')
+          var slideDestroyTile = $("[data-row='r" + row + "'][data-col='c" + col + "']");
           console.log("giving it the collide / delete me soon class");
+
           // we might need to swap row & location here for up/down operations, because of the twisty twist
+          var moveTo = location;
+          var dataType = "col";
           console.log("updating its attributes to have location (" + row + ", " + location + ")");
-          console.log("waiting for the animation to conclude...");
-          console.log("deleting the tile after animation is over");
+          if (slideDestroyTile.newValue != this.emptyTile) {
+            slideDestroyTile.addClass("burn-after-reading");
+            console.log("waiting for the animation to conclude...");
+            if (direction == "right" || direction == "down") {
+              moveTo = 3 - location;
+            }
+            if (direction == "up" || direction == "down") {
+              dataType = "row";
+            }
+
+            slideDestroyTile.attr("data-" + dataType, dataType[0] + moveTo).on("animationend", function() {
+              console.log("deleting the tile after animation is over");
+              slideDestroyTile.remove();
+            });
+          }
+
           console.log(col);
           var removed = oldBoard[row].splice(col, 1);
           console.log("removing that index :" + removed);
           oldBoard[row].splice(20, 0, 0);
           console.log(oldBoard[row]);
+
           console.log("grabbing the location of the first tile from the page");
+          var popTile;
+          if (direction == "left" || direction == "right") {
+            popTile = $("[data-row='r" + row + "'][data-col='c" + moveTo + "']");
+          } else { // "down" || "up"
+            popTile = $("[data-row='r" + moveTo + "'][data-col='c" + row + "']");
+          }
           console.log("updating it to have the new value");
           oldBoard[row][location] = oldBoard[row][location] * 2;
+          popTile.attr("data-val", newBoard[row][location]);
+          popTile.text(newBoard[row][location]);
+
           console.log("adding the pop style");
+          popTile.addClass("popper").on("animationend", function() {
+            // tile.removeClass("popper");
+          });
+
           // now that the current collision is resolved, there might be something else in this spot
           // so let's call noCollisionTest()
           noCollisionTest(col);
